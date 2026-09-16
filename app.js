@@ -3,12 +3,209 @@ import { classes, getClassById, getStationById } from "./data.js";
 const app = document.querySelector("#app");
 const toast = document.querySelector("#toast");
 
+const translations = {
+  ru: {
+    schoolEvent: "Школьный спортивный праздник", stationsCount: "7 станций", routesCount: "4 маршрута", oneTeam: "1 команда",
+    step: "Шаг", chooseClass: "Выберите свой класс", chooseHint: "Выберите класс, чтобы увидеть маршрут и следующую станцию.",
+    class: "Класс", moveTogether: "Двигайтесь вместе", allClasses: "Все классы", yourRoute: "Ваш маршрут", ofSeven: "из 7",
+    current: "Сейчас", lastStation: "Последняя станция", routeComplete: "Маршрут завершён", greatWork: "Отличная работа!",
+    goToStation: "Идите на станцию", finish: "Финиш", allPassed: "Все 7 станций пройдены", nextStation: "Далее: станция {id}",
+    thisIsFinish: "Это финиш! 🏆", openStation: "ОТКРЫТЬ СТАНЦИЮ {id}", restartRoute: "НАЧАТЬ МАРШРУТ ЗАНОВО",
+    route: "Маршрут", allStations: "Все станции", restart: "Начать заново", passed: "Пройдено", station: "Станция",
+    qrLink: "Ссылка для QR-кода", qrHint: "Открывает маршрут {className} напрямую.", copy: "Копировать", whatToDo: "Что нужно делать",
+    time: "Время", equipment: "Инвентарь", video: "Видео", howTo: "Как выполнять задание", videoInstruction: "Видео с инструкцией",
+    comingSoon: "Скоро появится", back: "Назад", next: "НА СЛЕДУЮЩУЮ", complete: "ЗАВЕРШИТЬ", viewRoute: "Посмотреть весь маршрут",
+    wrongPlace: "Не та площадка", missingPage: "Такой страницы или маршрута нет.", chooseClassButton: "К выбору класса", error: "Ошибка 404",
+    resetToast: "Маршрут начат заново", completeToast: "Маршрут пройден! Отличная работа 🏆", copiedToast: "Ссылка скопирована",
+    copyFallback: "Скопируйте адрес из строки браузера", eventTimer: "Общий таймер", timerReady: "Готов к старту",
+    timerRunning: "Время идёт", timerStopped: "Время остановлено", startTimer: "СТАРТ", stopTimer: "СТОП", resetTimer: "Сбросить",
+    result: "Результат", classResults: "Результаты класса", savedAutomatically: "Сохраняется автоматически", noResult: "Нет результата",
+    markCompleted: "ОТМЕТИТЬ ВЫПОЛНЕННЫМ", completed: "ВЫПОЛНЕНО", minutesShort: "мин", secondsShort: "сек", totalTime: "Общее время"
+  },
+  et: {
+    schoolEvent: "Kooli spordipäev", stationsCount: "7 jaama", routesCount: "4 marsruuti", oneTeam: "1 meeskond",
+    step: "Samm", chooseClass: "Valige oma klass", chooseHint: "Valige klass, et näha marsruuti ja järgmist jaama.",
+    class: "Klass", moveTogether: "Liigume koos", allClasses: "Kõik klassid", yourRoute: "Teie marsruut", ofSeven: "7-st",
+    current: "Hetkel", lastStation: "Viimane jaam", routeComplete: "Marsruut lõpetatud", greatWork: "Suurepärane töö!",
+    goToStation: "Minge jaama", finish: "Finiš", allPassed: "Kõik 7 jaama on läbitud", nextStation: "Järgmisena: jaam {id}",
+    thisIsFinish: "See on finiš! 🏆", openStation: "AVA JAAM {id}", restartRoute: "ALUSTA MARSRUUTI UUESTI",
+    route: "Marsruut", allStations: "Kõik jaamad", restart: "Alusta uuesti", passed: "Läbitud", station: "Jaam",
+    qrLink: "QR-koodi link", qrHint: "Avab klassi {className} marsruudi otse.", copy: "Kopeeri", whatToDo: "Mida tuleb teha",
+    time: "Aeg", equipment: "Vahendid", video: "Video", howTo: "Kuidas ülesannet täita", videoInstruction: "Videojuhend",
+    comingSoon: "Tulekul", back: "Tagasi", next: "JÄRGMISSE JAAMA", complete: "LÕPETA", viewRoute: "Vaata kogu marsruuti",
+    wrongPlace: "Vale väljak", missingPage: "Sellist lehte või marsruuti pole.", chooseClassButton: "Klassi valikusse", error: "Viga 404",
+    resetToast: "Marsruut algas uuesti", completeToast: "Marsruut läbitud! Suurepärane töö 🏆", copiedToast: "Link kopeeritud",
+    copyFallback: "Kopeerige aadress brauseri aadressiribalt", eventTimer: "Üldtaimer", timerReady: "Stardiks valmis",
+    timerRunning: "Aeg jookseb", timerStopped: "Aeg peatatud", startTimer: "START", stopTimer: "STOPP", resetTimer: "Lähtesta",
+    result: "Tulemus", classResults: "Klassi tulemused", savedAutomatically: "Salvestatakse automaatselt", noResult: "Tulemus puudub",
+    markCompleted: "MÄRGI TEHTUKS", completed: "TEHTUD", minutesShort: "min", secondsShort: "sek", totalTime: "Koguaeg"
+  }
+};
+
+let language = localStorage.getItem("sport-day-language") || (navigator.language.toLowerCase().startsWith("et") ? "et" : "ru");
+
+function tr(key, values = {}) {
+  return Object.entries(values).reduce((text, [name, value]) => text.replace(`{${name}}`, value), translations[language][key]);
+}
+
+function localized(value) {
+  return typeof value === "object" ? value[language] : value;
+}
+
+function languageSwitch() {
+  return `<div class="language-switch" aria-label="Language / Язык">
+    <button type="button" data-language="et" class="${language === "et" ? "is-active" : ""}" aria-pressed="${language === "et"}">EST</button>
+    <button type="button" data-language="ru" class="${language === "ru" ? "is-active" : ""}" aria-pressed="${language === "ru"}">RUS</button>
+  </div>`;
+}
+
 function progressKey(classId) {
   return `sport-day-progress-${classId}`;
 }
 
 function completionKey(classId) {
   return `sport-day-complete-${classId}`;
+}
+
+function timerKey(classId) {
+  return `sport-day-timer-${classId}`;
+}
+
+function readTimer(classId) {
+  try {
+    const stored = JSON.parse(localStorage.getItem(timerKey(classId)) || "null");
+    if (stored && Number.isFinite(stored.elapsed) && (!stored.running || Number.isFinite(stored.startedAt))) return stored;
+  } catch {
+    // Invalid saved data is safely replaced with a fresh timer.
+  }
+  return { running: false, startedAt: null, elapsed: 0 };
+}
+
+function saveTimer(classId, timer) {
+  localStorage.setItem(timerKey(classId), JSON.stringify(timer));
+}
+
+function elapsedMilliseconds(timer) {
+  return timer.elapsed + (timer.running ? Math.max(0, Date.now() - timer.startedAt) : 0);
+}
+
+function formatTime(milliseconds) {
+  const totalSeconds = Math.floor(milliseconds / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return [hours, minutes, seconds].map(value => String(value).padStart(2, "0")).join(":");
+}
+
+function timerPanel(classId) {
+  const timer = readTimer(classId);
+  const status = timer.running ? tr("timerRunning") : timer.elapsed > 0 ? tr("timerStopped") : tr("timerReady");
+  return `
+    <section class="event-timer ${timer.running ? "event-timer--running" : ""}" aria-label="${tr("eventTimer")}">
+      <div class="event-timer__header"><span>${tr("eventTimer")}</span><span class="event-timer__status"><i></i>${status}</span></div>
+      <div class="event-timer__body">
+        <time data-timer-value data-timer-class="${classId}">${formatTime(elapsedMilliseconds(timer))}</time>
+        ${timer.running
+          ? `<button class="timer-button timer-button--stop" type="button" data-timer-stop data-timer-class="${classId}">${tr("stopTimer")}</button>`
+          : `<button class="timer-button timer-button--start" type="button" data-timer-start data-timer-class="${classId}">${tr("startTimer")}</button>`}
+      </div>
+      ${!timer.running && timer.elapsed > 0 ? `<button class="timer-reset" type="button" data-timer-reset data-timer-class="${classId}">${tr("resetTimer")}</button>` : ""}
+    </section>
+  `;
+}
+
+function updateTimerDisplays() {
+  document.querySelectorAll("[data-timer-value]").forEach(element => {
+    const timer = readTimer(element.dataset.timerClass);
+    element.textContent = formatTime(elapsedMilliseconds(timer));
+  });
+}
+
+function resultKey(classId, stationId) {
+  return `sport-day-result-${classId}-${stationId}`;
+}
+
+function emptyResult(station) {
+  if (station.result.type === "counter") return { value: 0 };
+  if (station.result.type === "measurement") return { value: "" };
+  if (station.result.type === "duration") return { minutes: "", seconds: "" };
+  return { value: false };
+}
+
+function readResult(classId, stationId) {
+  try {
+    const stored = localStorage.getItem(resultKey(classId, stationId));
+    return stored === null ? null : JSON.parse(stored);
+  } catch {
+    return null;
+  }
+}
+
+function saveResult(classId, stationId, result) {
+  localStorage.setItem(resultKey(classId, stationId), JSON.stringify(result));
+}
+
+function formattedResult(classId, stationId) {
+  const station = getStationById(stationId);
+  const result = readResult(classId, stationId);
+  if (!result) return tr("noResult");
+  if (station.result.type === "status") return result.value ? `✓ ${tr("completed")}` : tr("noResult");
+  if (station.result.type === "counter") return `${result.value ?? 0} ${localized(station.result.unit)}`;
+  if (station.result.type === "measurement") return result.value === "" ? tr("noResult") : `${result.value} ${localized(station.result.unit)}`;
+  const minutes = Math.max(0, Number(result.minutes) || 0);
+  const seconds = Math.min(59, Math.max(0, Number(result.seconds) || 0));
+  return result.minutes === "" && result.seconds === "" ? tr("noResult") : `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function resultEditor(classId, stationId, station) {
+  const result = readResult(classId, stationId) || emptyResult(station);
+  let control = "";
+
+  if (station.result.type === "counter") {
+    const minus = [...station.result.steps].reverse().map(step => `<button type="button" data-result-delta="-${step}" data-class-id="${classId}" data-station-id="${stationId}">−${step}</button>`).join("");
+    const plus = station.result.steps.map(step => `<button type="button" data-result-delta="${step}" data-class-id="${classId}" data-station-id="${stationId}">+${step}</button>`).join("");
+    control = `<div class="score-control"><div class="score-buttons">${minus}</div><output>${result.value ?? 0}<small>${localized(station.result.unit)}</small></output><div class="score-buttons">${plus}</div></div>`;
+  } else if (station.result.type === "measurement") {
+    control = `<label class="measurement-control"><input type="number" inputmode="decimal" min="0" step="${station.result.step}" value="${result.value}" data-result-measurement data-class-id="${classId}" data-station-id="${stationId}" aria-label="${tr("result")}"><span>${localized(station.result.unit)}</span></label>`;
+  } else if (station.result.type === "duration") {
+    control = `<div class="duration-control">
+      <label><input type="number" inputmode="numeric" min="0" value="${result.minutes}" placeholder="00" data-result-duration="minutes" data-class-id="${classId}" data-station-id="${stationId}"><span>${tr("minutesShort")}</span></label>
+      <strong>:</strong>
+      <label><input type="number" inputmode="numeric" min="0" max="59" value="${result.seconds}" placeholder="00" data-result-duration="seconds" data-class-id="${classId}" data-station-id="${stationId}"><span>${tr("secondsShort")}</span></label>
+    </div>`;
+  } else {
+    control = `<button class="status-result ${result.value ? "is-complete" : ""}" type="button" data-result-status data-class-id="${classId}" data-station-id="${stationId}">${result.value ? `✓ ${tr("completed")}` : tr("markCompleted")}</button>`;
+  }
+
+  return `<section class="result-section" aria-labelledby="result-title">
+    <div class="result-section__heading"><div><p class="step-label">SPORT DAY</p><h2 id="result-title">${tr("result")}</h2></div><span>${tr("savedAutomatically")}</span></div>
+    ${control}
+  </section>`;
+}
+
+function updateResultEditor(classId, stationId) {
+  const current = document.querySelector(".result-section");
+  if (current) current.outerHTML = resultEditor(classId, stationId, getStationById(stationId));
+}
+
+function classResults(classId, classData) {
+  const timer = readTimer(classId);
+  const rows = classData.route.map(stationId => {
+    const station = getStationById(stationId);
+    const hasResult = readResult(classId, stationId) !== null;
+    return `<a class="result-row ${hasResult ? "has-result" : ""}" href="${routeFor(classId, stationId)}" data-link>
+      <span class="result-row__number">${stationId}</span>
+      <span class="result-row__name">${localized(station.name)}</span>
+      <strong>${formattedResult(classId, stationId)}</strong>
+      <span aria-hidden="true">›</span>
+    </a>`;
+  }).join("");
+
+  return `<section class="results-summary" aria-labelledby="results-title">
+    <div class="section-title-row"><div><p class="step-label">SPORT DAY</p><h2 id="results-title">${tr("classResults")}</h2></div></div>
+    <div class="total-time"><span>${tr("totalTime")}</span><strong>${formatTime(elapsedMilliseconds(timer))}</strong></div>
+    <div class="results-list">${rows}</div>
+  </section>`;
 }
 
 export function readProgress(classId) {
@@ -54,7 +251,7 @@ function parseRoute(pathname = window.location.pathname) {
 }
 
 function classBadge(classData) {
-  return `<span class="class-pill class-pill--${classData.color}">Класс ${classData.name}</span>`;
+  return `<span class="class-pill class-pill--${classData.color}">${tr("class")} ${classData.name}</span>`;
 }
 
 function shell(content, options = {}) {
@@ -63,16 +260,17 @@ function shell(content, options = {}) {
     <main class="site-shell ${compact ? "site-shell--compact" : ""}">
       ${content}
     </main>
-    <footer class="footer"><span>SPORT DAY</span><span>Двигайтесь вместе ✦</span></footer>
+    <footer class="footer"><span>SPORT DAY</span><span>${tr("moveTogether")} ✦</span></footer>
   `;
 }
 
 function renderHome() {
-  document.title = "Sport Day — выберите класс";
+  document.title = `Sport Day — ${tr("chooseClass")}`;
+  document.documentElement.lang = language;
   const buttons = Object.entries(classes)
     .map(([id, item], index) => `
       <a class="class-card class-card--${item.color}" href="/class/${id}" data-link style="--delay:${index * 60}ms">
-        <span class="class-card__label">КЛАСС</span>
+        <span class="class-card__label">${tr("class").toUpperCase()}</span>
         <strong>${item.name}</strong>
         <span class="class-card__arrow" aria-hidden="true">↗</span>
       </a>
@@ -80,19 +278,20 @@ function renderHome() {
 
   app.innerHTML = shell(`
     <section class="hero">
+      <div class="home-language">${languageSwitch()}</div>
       <div class="hero__marks" aria-hidden="true"><span>●</span><span>✦</span><span>●</span></div>
-      <p class="eyebrow">Школьный спортивный праздник</p>
+      <p class="eyebrow">${tr("schoolEvent")}</p>
       <h1>SPORT<br><em>DAY</em></h1>
       <div class="hero__runner" aria-hidden="true">🏃</div>
-      <p class="hero__date">7 станций <span></span> 4 маршрута <span></span> 1 команда</p>
+      <p class="hero__date">${tr("stationsCount")} <span></span> ${tr("routesCount")} <span></span> ${tr("oneTeam")}</p>
     </section>
     <section class="selection" aria-labelledby="select-title">
       <div class="section-heading">
         <div>
-          <p class="step-label">ШАГ 01</p>
-          <h2 id="select-title">Выберите свой класс</h2>
+          <p class="step-label">${tr("step").toUpperCase()} 01</p>
+          <h2 id="select-title">${tr("chooseClass")}</h2>
         </div>
-        <p>Выберите класс, чтобы увидеть маршрут и следующую станцию.</p>
+        <p>${tr("chooseHint")}</p>
       </div>
       <div class="class-grid">${buttons}</div>
     </section>
@@ -102,11 +301,11 @@ function renderHome() {
 function renderRouteStrip(classId, classData, currentIndex, interactive = true) {
   return classData.route.map((stationId, index) => {
     const state = index < currentIndex ? "done" : index === currentIndex ? "active" : "upcoming";
-    const label = state === "done" ? "Пройдено" : state === "active" ? "Сейчас" : `Шаг ${index + 1}`;
+    const label = state === "done" ? tr("passed") : state === "active" ? tr("current") : `${tr("step")} ${index + 1}`;
     const body = `
       <span class="route-card__state">${state === "done" ? "✓ " : ""}${label}</span>
       <strong>${stationId}</strong>
-      <span>Станция</span>
+      <span>${tr("station")}</span>
     `;
     return `
       <li class="route-step route-step--${state}">
@@ -125,51 +324,54 @@ function renderClass(classId) {
   const nextId = classData.route[currentIndex + 1];
   const isLast = currentIndex === classData.route.length - 1;
   const completed = isComplete(classId);
-  document.title = `${classData.name} — маршрут Sport Day`;
+  document.title = `${classData.name} — ${tr("route")} Sport Day`;
+  document.documentElement.lang = language;
 
   app.innerHTML = shell(`
-    <nav class="topbar" aria-label="Основная навигация">
-      <a href="/" data-link class="back-link">← Все классы</a>
-      ${classBadge(classData)}
+    <nav class="topbar" aria-label="Navigation">
+      <a href="/" data-link class="back-link">← ${tr("allClasses")}</a>
+      <div class="topbar__right">${languageSwitch()}${classBadge(classData)}</div>
     </nav>
+    ${timerPanel(classId)}
     <header class="route-hero">
       <div>
-        <p class="eyebrow">Ваш маршрут</p>
-        <h1>Класс ${classData.name}</h1>
+        <p class="eyebrow">${tr("yourRoute")}</p>
+        <h1>${tr("class")} ${classData.name}</h1>
       </div>
-      <div class="route-count"><strong>${completed ? 7 : currentIndex + 1}</strong><span>из 7</span></div>
+      <div class="route-count"><strong>${completed ? 7 : currentIndex + 1}</strong><span>${tr("ofSeven")}</span></div>
     </header>
     <section class="direction-card direction-card--${classData.color}">
       <div class="direction-card__top">
         <span class="pulse-dot"></span>
-        <span>${completed ? "Маршрут завершён" : isLast ? "Последняя станция" : "Сейчас"}</span>
+        <span>${completed ? tr("routeComplete") : isLast ? tr("lastStation") : tr("current")}</span>
       </div>
       <div class="direction-card__main">
         <span class="direction-card__icon">${completed ? "🏆" : getStationById(currentId).icon}</span>
         <div>
-          <p>${completed ? "Отличная работа!" : "Идите на станцию"}</p>
-          <strong>${completed ? "Финиш" : currentId}</strong>
+          <p>${completed ? tr("greatWork") : tr("goToStation")}</p>
+          <strong>${completed ? tr("finish") : currentId}</strong>
         </div>
       </div>
       <div class="direction-card__bottom">
-        <span>${completed ? "Все 7 станций пройдены" : getStationById(currentId).name}</span>
-        <span>${completed ? "SPORT DAY ✓" : nextId ? `Далее: станция ${nextId}` : "Это финиш! 🏆"}</span>
+        <span>${completed ? tr("allPassed") : localized(getStationById(currentId).name)}</span>
+        <span>${completed ? "SPORT DAY ✓" : nextId ? tr("nextStation", { id: nextId }) : tr("thisIsFinish")}</span>
       </div>
     </section>
     ${completed
-      ? `<button class="primary-button" type="button" data-reset>НАЧАТЬ МАРШРУТ ЗАНОВО <span>↻</span></button>`
-      : `<a class="primary-button" href="${routeFor(classId, currentId)}" data-link>ОТКРЫТЬ СТАНЦИЮ ${currentId} <span>→</span></a>`}
+      ? `<button class="primary-button" type="button" data-reset>${tr("restartRoute")} <span>↻</span></button>`
+      : `<a class="primary-button" href="${routeFor(classId, currentId)}" data-link>${tr("openStation", { id: currentId })} <span>→</span></a>`}
     <section class="route-section" aria-labelledby="full-route-title">
       <div class="section-title-row">
-        <div><p class="step-label">МАРШРУТ</p><h2 id="full-route-title">Все станции</h2></div>
-        <button class="text-button" type="button" data-reset>Начать заново</button>
+        <div><p class="step-label">${tr("route").toUpperCase()}</p><h2 id="full-route-title">${tr("allStations")}</h2></div>
+        <button class="text-button" type="button" data-reset>${tr("restart")}</button>
       </div>
       <ol class="route-list">${renderRouteStrip(classId, classData, completed ? classData.route.length : currentIndex)}</ol>
     </section>
+    ${classResults(classId, classData)}
     <aside class="share-card">
       <div class="share-card__icon">▦</div>
-      <div><strong>Ссылка для QR-кода</strong><p>Открывает маршрут ${classData.name} напрямую.</p></div>
-      <button class="copy-button" type="button" data-copy-link>Копировать</button>
+      <div><strong>${tr("qrLink")}</strong><p>${tr("qrHint", { className: classData.name })}</p></div>
+      <button class="copy-button" type="button" data-copy-link>${tr("copy")}</button>
     </aside>
   `, { compact: true });
 
@@ -182,12 +384,12 @@ function renderClass(classId) {
 
 function videoBlock(station) {
   if (station.video) {
-    return `<div class="video-frame"><iframe src="${station.video}" title="Видеоинструкция" allowfullscreen loading="lazy"></iframe></div>`;
+    return `<div class="video-frame"><iframe src="${station.video}" title="${tr("videoInstruction")}" allowfullscreen loading="lazy"></iframe></div>`;
   }
   return `
     <div class="video-placeholder">
       <span class="play-icon">▶</span>
-      <div><strong>Видео с инструкцией</strong><p>Скоро появится</p></div>
+      <div><strong>${tr("videoInstruction")}</strong><p>${tr("comingSoon")}</p></div>
     </div>
   `;
 }
@@ -201,47 +403,53 @@ function renderStation(classId, stationId) {
   const previousId = classData.route[routeIndex - 1];
   const nextId = classData.route[routeIndex + 1];
   const isLast = routeIndex === classData.route.length - 1;
-  document.title = `Станция ${stationId} — ${classData.name}`;
+  document.title = `${tr("station")} ${stationId} — ${classData.name}`;
+  document.documentElement.lang = language;
 
   app.innerHTML = shell(`
-    <nav class="topbar topbar--station" aria-label="Навигация станции">
-      <a href="/class/${classId}" data-link class="back-link">← Маршрут</a>
-      ${classBadge(classData)}
+    <nav class="topbar topbar--station" aria-label="Navigation">
+      <a href="/class/${classId}" data-link class="back-link">← ${tr("route")}</a>
+      <div class="topbar__right">${languageSwitch()}${classBadge(classData)}</div>
     </nav>
+    ${timerPanel(classId)}
     <header class="station-hero station-hero--${classData.color}">
-      <div class="station-hero__number"><span>СТАНЦИЯ</span><strong>${stationId}</strong></div>
-      <div class="station-hero__content"><span class="station-hero__emoji">${station.icon}</span><h1>${station.name}</h1></div>
+      <div class="station-hero__number"><span>${tr("station").toUpperCase()}</span><strong>${stationId}</strong></div>
+      <div class="station-hero__content"><span class="station-hero__emoji">${station.icon}</span><h1>${localized(station.name)}</h1></div>
       <span class="station-hero__step">${routeIndex + 1} / 7</span>
     </header>
     <section class="station-content">
       <div class="info-panel info-panel--description">
-        <p class="step-label">ЧТО НУЖНО ДЕЛАТЬ</p>
-        <p class="description">${station.description}</p>
+        <p class="step-label">${tr("whatToDo").toUpperCase()}</p>
+        <p class="description">${localized(station.description)}</p>
+        <ul class="task-details">${localized(station.details).map(item => `<li>${item}</li>`).join("")}</ul>
       </div>
       <div class="facts-grid">
-        <div class="fact"><span class="fact__icon">⏱</span><div><span>Время</span><strong>${station.time}</strong></div></div>
-        <div class="fact"><span class="fact__icon">🎒</span><div><span>Инвентарь</span><strong>${station.equipment}</strong></div></div>
+        <div class="fact"><span class="fact__icon">⏱</span><div><span>${tr("time")}</span><strong>${localized(station.time)}</strong></div></div>
+        <div class="fact"><span class="fact__icon">🎒</span><div><span>${tr("equipment")}</span><strong>${localized(station.equipment)}</strong></div></div>
       </div>
+      ${resultEditor(classId, stationId, station)}
       <div class="video-section">
-        <div class="section-title-row"><div><p class="step-label">ВИДЕО</p><h2>Как выполнять задание</h2></div></div>
+        <div class="section-title-row"><div><p class="step-label">${tr("video").toUpperCase()}</p><h2>${tr("howTo")}</h2></div></div>
         ${videoBlock(station)}
       </div>
     </section>
     <div class="station-actions">
-      ${previousId ? `<a class="secondary-button" href="${routeFor(classId, previousId)}" data-prev-station data-link>← Назад</a>` : `<a class="secondary-button" href="/class/${classId}" data-link>← Маршрут</a>`}
-      ${nextId ? `<a class="primary-button primary-button--next" href="${routeFor(classId, nextId)}" data-next-station data-next-index="${routeIndex + 1}" data-link>НА СЛЕДУЮЩУЮ <span>→</span></a>` : `<button class="primary-button primary-button--finish" type="button" data-finish>ЗАВЕРШИТЬ <span>🏆</span></button>`}
+      ${previousId ? `<a class="secondary-button" href="${routeFor(classId, previousId)}" data-prev-station data-link>← ${tr("back")}</a>` : `<a class="secondary-button" href="/class/${classId}" data-link>← ${tr("route")}</a>`}
+      ${nextId ? `<a class="primary-button primary-button--next" href="${routeFor(classId, nextId)}" data-next-station data-next-index="${routeIndex + 1}" data-link>${tr("next")} <span>→</span></a>` : `<button class="primary-button primary-button--finish" type="button" data-finish>${tr("complete")} <span>🏆</span></button>`}
     </div>
-    <a class="route-return" href="/class/${classId}" data-link>Посмотреть весь маршрут</a>
+    <a class="route-return" href="/class/${classId}" data-link>${tr("viewRoute")}</a>
   `, { compact: true });
 }
 
 function renderNotFound() {
-  document.title = "Страница не найдена — Sport Day";
+  document.title = `404 — Sport Day`;
+  document.documentElement.lang = language;
   app.innerHTML = shell(`
     <section class="not-found">
-      <span>🏀</span><p class="eyebrow">Ошибка 404</p><h1>Не та площадка</h1>
-      <p>Такой страницы или маршрута нет.</p>
-      <a class="primary-button" href="/" data-link>К выбору класса →</a>
+      <div class="not-found__language">${languageSwitch()}</div>
+      <span>🏀</span><p class="eyebrow">${tr("error")}</p><h1>${tr("wrongPlace")}</h1>
+      <p>${tr("missingPage")}</p>
+      <a class="primary-button" href="/" data-link>${tr("chooseClassButton")} →</a>
     </section>
   `, { compact: true });
 }
@@ -262,6 +470,59 @@ function render() {
 }
 
 document.addEventListener("click", async (event) => {
+  const languageButton = event.target.closest("[data-language]");
+  if (languageButton) {
+    language = languageButton.dataset.language;
+    localStorage.setItem("sport-day-language", language);
+    render();
+    return;
+  }
+
+  const timerStart = event.target.closest("[data-timer-start]");
+  if (timerStart) {
+    const classId = timerStart.dataset.timerClass;
+    const timer = readTimer(classId);
+    saveTimer(classId, { running: true, startedAt: Date.now(), elapsed: timer.elapsed });
+    render();
+    return;
+  }
+
+  const timerStop = event.target.closest("[data-timer-stop]");
+  if (timerStop) {
+    const classId = timerStop.dataset.timerClass;
+    const timer = readTimer(classId);
+    saveTimer(classId, { running: false, startedAt: null, elapsed: elapsedMilliseconds(timer) });
+    render();
+    return;
+  }
+
+  const timerReset = event.target.closest("[data-timer-reset]");
+  if (timerReset) {
+    saveTimer(timerReset.dataset.timerClass, { running: false, startedAt: null, elapsed: 0 });
+    render();
+    return;
+  }
+
+  const resultDelta = event.target.closest("[data-result-delta]");
+  if (resultDelta) {
+    const classId = resultDelta.dataset.classId;
+    const stationId = Number(resultDelta.dataset.stationId);
+    const current = readResult(classId, stationId) || { value: 0 };
+    saveResult(classId, stationId, { value: Math.max(0, (Number(current.value) || 0) + Number(resultDelta.dataset.resultDelta)) });
+    updateResultEditor(classId, stationId);
+    return;
+  }
+
+  const resultStatus = event.target.closest("[data-result-status]");
+  if (resultStatus) {
+    const classId = resultStatus.dataset.classId;
+    const stationId = Number(resultStatus.dataset.stationId);
+    const current = readResult(classId, stationId) || { value: false };
+    saveResult(classId, stationId, { value: !current.value });
+    updateResultEditor(classId, stationId);
+    return;
+  }
+
   const stationJump = event.target.closest("[data-station-jump]");
   if (stationJump) {
     const { classId } = parseRoute();
@@ -290,7 +551,7 @@ document.addEventListener("click", async (event) => {
     saveProgress(classId, 0);
     saveComplete(classId, false);
     renderClass(classId);
-    showToast("Маршрут начат заново");
+    showToast(tr("resetToast"));
     return;
   }
 
@@ -298,7 +559,7 @@ document.addEventListener("click", async (event) => {
   if (finish) {
     const { classId } = parseRoute();
     saveComplete(classId, true);
-    showToast("Маршрут пройден! Отличная работа 🏆");
+    showToast(tr("completeToast"));
     setTimeout(() => navigate(`/class/${classId}`), 500);
     return;
   }
@@ -307,9 +568,9 @@ document.addEventListener("click", async (event) => {
   if (copy) {
     try {
       await navigator.clipboard.writeText(window.location.href);
-      showToast("Ссылка скопирована");
+      showToast(tr("copiedToast"));
     } catch {
-      showToast("Скопируйте адрес из строки браузера");
+      showToast(tr("copyFallback"));
     }
     return;
   }
@@ -321,7 +582,27 @@ document.addEventListener("click", async (event) => {
   }
 });
 
+document.addEventListener("input", event => {
+  const measurement = event.target.closest("[data-result-measurement]");
+  if (measurement) {
+    const value = measurement.value === "" ? "" : Math.max(0, Number(measurement.value));
+    saveResult(measurement.dataset.classId, Number(measurement.dataset.stationId), { value });
+    return;
+  }
+
+  const duration = event.target.closest("[data-result-duration]");
+  if (duration) {
+    const classId = duration.dataset.classId;
+    const stationId = Number(duration.dataset.stationId);
+    const result = readResult(classId, stationId) || { minutes: "", seconds: "" };
+    const maximum = duration.dataset.resultDuration === "seconds" ? 59 : Number.MAX_SAFE_INTEGER;
+    result[duration.dataset.resultDuration] = duration.value === "" ? "" : String(Math.min(maximum, Math.max(0, Number(duration.value))));
+    saveResult(classId, stationId, result);
+  }
+});
+
 window.addEventListener("popstate", render);
 render();
+setInterval(updateTimerDisplays, 250);
 
-export { parseRoute };
+export { formatTime, parseRoute };
