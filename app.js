@@ -23,7 +23,9 @@ const translations = {
     timerRunning: "Время идёт", timerStopped: "Время остановлено", startTimer: "СТАРТ", stopTimer: "СТОП", resetTimer: "Сбросить",
     result: "Результат", classResults: "Результаты класса", savedAutomatically: "Сохраняется автоматически", noResult: "Нет результата",
     markCompleted: "ОТМЕТИТЬ ВЫПОЛНЕННЫМ", completed: "ВЫПОЛНЕНО", minutesShort: "мин", secondsShort: "сек", totalTime: "Общее время",
-    startsAutomatically: "Запускается автоматически", stopsOnExit: "Остановится при переходе дальше", stationTimer: "Таймер станции"
+    startsAutomatically: "Запускается автоматически", stopsOnExit: "Остановится при переходе дальше", stationTimer: "Таймер станции",
+    stationTimerReady: "Нажмите START перед заданием", stationTimerRunning: "Таймер запущен", stationStart: "START", stationStop: "STOP",
+    timeSaved: "Время сохранено в отчёт", stopTimerFirst: "Сначала остановите таймер станции"
   },
   et: {
     schoolEvent: "Kooli spordipäev", stationsCount: "7 jaama", routesCount: "4 marsruuti", oneTeam: "1 meeskond",
@@ -42,7 +44,9 @@ const translations = {
     timerRunning: "Aeg jookseb", timerStopped: "Aeg peatatud", startTimer: "START", stopTimer: "STOPP", resetTimer: "Lähtesta",
     result: "Tulemus", classResults: "Klassi tulemused", savedAutomatically: "Salvestatakse automaatselt", noResult: "Tulemus puudub",
     markCompleted: "MÄRGI TEHTUKS", completed: "TEHTUD", minutesShort: "min", secondsShort: "sek", totalTime: "Koguaeg",
-    startsAutomatically: "Käivitub automaatselt", stopsOnExit: "Peatub järgmisele liikudes", stationTimer: "Jaama taimer"
+    startsAutomatically: "Käivitub automaatselt", stopsOnExit: "Peatub järgmisele liikudes", stationTimer: "Jaama taimer",
+    stationTimerReady: "Vajutage enne ülesannet START", stationTimerRunning: "Taimer töötab", stationStart: "START", stationStop: "STOPP",
+    timeSaved: "Aeg salvestati aruandesse", stopTimerFirst: "Peatage kõigepealt jaama taimer"
   }
 };
 
@@ -162,20 +166,20 @@ function formatStationTime(milliseconds) {
 }
 
 function startStationTimer(classId, stationId) {
-  if (readResult(classId, stationId)) return;
-  const timer = readStationTimer(classId, stationId);
-  if (!timer.running && timer.elapsed === 0) saveStationTimer(classId, stationId, { running: true, startedAt: Date.now(), elapsed: 0 });
+  localStorage.removeItem(resultKey(classId, stationId));
+  saveStationTimer(classId, stationId, { running: true, startedAt: Date.now(), elapsed: 0 });
 }
 
 function stopStationTimer(classId, stationId) {
   const station = getStationById(stationId);
-  if (!station || station.result.type !== "duration") return;
+  if (!station || station.result.type !== "duration") return false;
   const timer = readStationTimer(classId, stationId);
-  if (!timer.running) return;
+  if (!timer.running) return false;
   const elapsed = elapsedMilliseconds(timer);
   const totalSeconds = Math.floor(elapsed / 1000);
   saveStationTimer(classId, stationId, { running: false, startedAt: null, elapsed });
   saveResult(classId, stationId, { minutes: Math.floor(totalSeconds / 60), seconds: totalSeconds % 60 });
+  return true;
 }
 
 function resultKey(classId, stationId) {
@@ -243,7 +247,8 @@ function resultEditor(classId, stationId, station) {
     control = `<div class="automatic-station-timer">
       <span>${tr("stationTimer")}</span>
       <time data-station-timer-value data-timer-class="${classId}" data-station-id="${stationId}">${formatStationTime(stationTimer.running ? elapsedMilliseconds(stationTimer) : savedMilliseconds)}</time>
-      <small>${stationTimer.running ? tr("stopsOnExit") : readResult(classId, stationId) ? `✓ ${tr("completed")}` : tr("startsAutomatically")}</small>
+      <small>${stationTimer.running ? tr("stationTimerRunning") : readResult(classId, stationId) ? `✓ ${tr("timeSaved")}` : tr("stationTimerReady")}</small>
+      <button class="station-timer-button ${stationTimer.running ? "station-timer-button--stop" : "station-timer-button--start"}" type="button" ${stationTimer.running ? "data-station-timer-stop" : "data-station-timer-start"} data-class-id="${classId}" data-station-id="${stationId}">${stationTimer.running ? tr("stationStop") : tr("stationStart")}</button>
     </div>`;
   } else {
     control = `<button class="status-result ${result.value ? "is-complete" : ""}" type="button" data-result-status data-class-id="${classId}" data-station-id="${stationId}">${result.value ? `✓ ${tr("completed")}` : tr("markCompleted")}</button>`;
@@ -490,7 +495,6 @@ function renderStation(classId, stationId) {
   const nextId = classData.route[routeIndex + 1];
   const isLast = routeIndex === classData.route.length - 1;
   if (routeIndex === 0) startOverallTimer(classId);
-  if (station.result.type === "duration") startStationTimer(classId, stationId);
   document.title = `${tr("station")} ${stationId} — ${classData.name}`;
   document.documentElement.lang = language;
 
@@ -549,6 +553,15 @@ function showToast(message) {
   showToast.timer = setTimeout(() => toast.classList.remove("toast--visible"), 2200);
 }
 
+function playResultAnimation(stationId, label = "✓") {
+  const celebration = document.createElement("div");
+  celebration.className = "score-celebration";
+  celebration.innerHTML = `<span>${Number(stationId) === 2 ? "🏀" : Number(stationId) === 3 ? "⚽" : "⭐"}</span><strong>${label}</strong><i></i><i></i><i></i><i></i>`;
+  document.body.append(celebration);
+  requestAnimationFrame(() => celebration.classList.add("is-playing"));
+  setTimeout(() => celebration.remove(), 1000);
+}
+
 function render() {
   const route = parseRoute();
   if (route.page === "home") renderHome();
@@ -566,13 +579,36 @@ document.addEventListener("click", async (event) => {
     return;
   }
 
+  const stationTimerStart = event.target.closest("[data-station-timer-start]");
+  if (stationTimerStart) {
+    const classId = stationTimerStart.dataset.classId;
+    const stationId = Number(stationTimerStart.dataset.stationId);
+    startStationTimer(classId, stationId);
+    updateResultEditor(classId, stationId);
+    return;
+  }
+
+  const stationTimerStop = event.target.closest("[data-station-timer-stop]");
+  if (stationTimerStop) {
+    const classId = stationTimerStop.dataset.classId;
+    const stationId = Number(stationTimerStop.dataset.stationId);
+    if (stopStationTimer(classId, stationId)) {
+      updateResultEditor(classId, stationId);
+      showToast(tr("timeSaved"));
+      playResultAnimation(stationId);
+    }
+    return;
+  }
+
   const resultDelta = event.target.closest("[data-result-delta]");
   if (resultDelta) {
     const classId = resultDelta.dataset.classId;
     const stationId = Number(resultDelta.dataset.stationId);
     const current = readResult(classId, stationId) || { value: 0 };
-    saveResult(classId, stationId, { value: Math.max(0, (Number(current.value) || 0) + Number(resultDelta.dataset.resultDelta)) });
+    const delta = Number(resultDelta.dataset.resultDelta);
+    saveResult(classId, stationId, { value: Math.max(0, (Number(current.value) || 0) + delta) });
     updateResultEditor(classId, stationId);
+    if (delta > 0) playResultAnimation(stationId, `+${delta}`);
     return;
   }
 
@@ -583,6 +619,7 @@ document.addEventListener("click", async (event) => {
     const current = readResult(classId, stationId) || { value: false };
     saveResult(classId, stationId, { value: !current.value });
     updateResultEditor(classId, stationId);
+    if (!current.value) playResultAnimation(stationId);
     return;
   }
 
@@ -595,8 +632,7 @@ document.addEventListener("click", async (event) => {
 
   const next = event.target.closest("[data-next-station]");
   if (next) {
-    const { classId, stationId } = parseRoute();
-    stopStationTimer(classId, stationId);
+    const { classId } = parseRoute();
     saveProgress(classId, Number(next.dataset.nextIndex));
     saveComplete(classId, false);
   }
@@ -605,7 +641,6 @@ document.addEventListener("click", async (event) => {
   if (previous) {
     const route = parseRoute();
     const classData = getClassById(route.classId);
-    stopStationTimer(route.classId, route.stationId);
     saveProgress(route.classId, Math.max(0, classData.route.indexOf(route.stationId) - 1));
     saveComplete(route.classId, false);
   }
@@ -622,7 +657,10 @@ document.addEventListener("click", async (event) => {
   const finish = event.target.closest("[data-finish]");
   if (finish) {
     const { classId, stationId } = parseRoute();
-    stopStationTimer(classId, stationId);
+    if (readStationTimer(classId, stationId).running) {
+      showToast(tr("stopTimerFirst"));
+      return;
+    }
     stopOverallTimer(classId);
     saveComplete(classId, true);
     showToast(tr("completeToast"));
@@ -643,8 +681,6 @@ document.addEventListener("click", async (event) => {
 
   const link = event.target.closest("a[data-link]");
   if (link && link.origin === window.location.origin && !event.metaKey && !event.ctrlKey) {
-    const route = parseRoute();
-    if (route.page === "station" && link.pathname !== window.location.pathname) stopStationTimer(route.classId, route.stationId);
     event.preventDefault();
     navigate(link.pathname);
   }

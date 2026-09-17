@@ -225,6 +225,9 @@ a { color: inherit; text-decoration: none; }
 .automatic-station-timer > span { color: #6c857e; font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 .automatic-station-timer time { margin: 7px 0; font: 700 54px/1 "Space Grotesk", monospace; font-variant-numeric: tabular-nums; letter-spacing: -.05em; }
 .automatic-station-timer small { color: #6c857e; font-weight: 700; }
+.station-timer-button { width: 100%; min-height: 54px; margin-top: 15px; border: 0; border-radius: 14px; color: var(--ink-deep); font-weight: 900; font-size: 14px; letter-spacing: .08em; cursor: pointer; }
+.station-timer-button--start { background: var(--yellow); }
+.station-timer-button--stop { color: white; background: var(--coral); animation: softPulse 1.5s infinite; }
 .status-result { width: 100%; min-height: 68px; padding: 14px; border: 1px solid rgba(255,255,255,.25); border-radius: 18px; color: white; background: rgba(255,255,255,.09); font-weight: 900; cursor: pointer; }
 .status-result.is-complete { color: var(--ink-deep); border-color: var(--green); background: var(--green); }
 
@@ -261,9 +264,29 @@ a { color: inherit; text-decoration: none; }
 .footer { min-height: 70px; padding: 20px 18px calc(20px + env(safe-area-inset-bottom)); display: flex; justify-content: space-between; gap: 20px; color: #abc2bc; background: var(--ink-deep); font-size: 10px; font-weight: 700; letter-spacing: .12em; }
 .toast { position: fixed; left: 50%; bottom: calc(22px + env(safe-area-inset-bottom)); z-index: 20; max-width: calc(100% - 32px); padding: 12px 18px; border-radius: 999px; color: white; background: var(--ink-deep); box-shadow: var(--shadow); font-size: 13px; font-weight: 700; opacity: 0; transform: translate(-50%, 16px); pointer-events: none; transition: .2s ease; white-space: nowrap; }
 .toast--visible { opacity: 1; transform: translate(-50%, 0); }
+.score-celebration { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; pointer-events: none; opacity: 0; }
+.score-celebration::before { content: ""; position: absolute; width: 150px; height: 150px; border-radius: 50%; background: rgba(249,199,68,.9); transform: scale(.2); }
+.score-celebration > span { position: relative; z-index: 2; font-size: 78px; filter: drop-shadow(0 12px 12px rgba(12,46,39,.25)); transform: translateY(100px) rotate(-20deg) scale(.5); }
+.score-celebration > strong { position: absolute; z-index: 3; margin: 0 0 135px 120px; padding: 9px 13px; border-radius: 999px; color: white; background: var(--coral); font: 900 20px/1 "Space Grotesk", sans-serif; transform: scale(0); }
+.score-celebration i { position: absolute; z-index: 1; width: 9px; height: 24px; border-radius: 3px; background: var(--coral); opacity: 0; }
+.score-celebration i:nth-of-type(1) { margin: -180px 0 0 -130px; background: var(--blue); transform: rotate(25deg); }
+.score-celebration i:nth-of-type(2) { margin: -130px -160px 0 0; background: var(--yellow); transform: rotate(-35deg); }
+.score-celebration i:nth-of-type(3) { margin: 140px 0 0 -170px; background: var(--green); transform: rotate(55deg); }
+.score-celebration i:nth-of-type(4) { margin: 170px -140px 0 0; transform: rotate(-55deg); }
+.score-celebration.is-playing { animation: celebrationFade .9s ease both; }
+.score-celebration.is-playing::before { animation: celebrationBurst .7s ease-out both; }
+.score-celebration.is-playing > span { animation: ballScore .75s cubic-bezier(.2,.8,.3,1.2) both; }
+.score-celebration.is-playing > strong { animation: scoreBadge .65s .12s cubic-bezier(.2,.8,.3,1.3) both; }
+.score-celebration.is-playing i { animation: confettiPop .7s .12s ease-out both; }
 
 @keyframes pulse { 50% { box-shadow: 0 0 0 8px rgba(23,63,53,0); } }
 @keyframes timerPulse { 50% { box-shadow: 0 0 0 8px rgba(249,199,68,0); } }
+@keyframes softPulse { 50% { box-shadow: 0 0 0 6px rgba(242,106,79,.16); } }
+@keyframes celebrationFade { 0% { opacity: 0; } 15%, 78% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes celebrationBurst { 0% { transform: scale(.2); opacity: 0; } 55% { opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+@keyframes ballScore { 0% { transform: translateY(130px) rotate(-30deg) scale(.45); } 55% { transform: translateY(-12px) rotate(12deg) scale(1.15); } 100% { transform: translateY(0) rotate(0) scale(1); } }
+@keyframes scoreBadge { from { transform: scale(0) rotate(-12deg); } to { transform: scale(1) rotate(5deg); } }
+@keyframes confettiPop { 0% { opacity: 0; transform: scale(.2) translateY(30px); } 35% { opacity: 1; } 100% { opacity: 0; transform: scale(1) translateY(-35px); } }
 @keyframes liftIn { from { opacity: 0; transform: translateY(12px); } }
 
 @media (max-width: 370px) {
