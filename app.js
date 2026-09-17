@@ -1,7 +1,9 @@
 import { classes, getClassById, getStationById } from "./data.js";
+import { hydrateClass, markClassChanged, refreshClassFromCloud } from "./cloud.js";
 
 const app = document.querySelector("#app");
 const toast = document.querySelector("#toast");
+const hydratedClasses = new Set();
 
 const translations = {
   ru: {
@@ -20,7 +22,8 @@ const translations = {
     copyFallback: "Скопируйте адрес из строки браузера", eventTimer: "Общий таймер", timerReady: "Готов к старту",
     timerRunning: "Время идёт", timerStopped: "Время остановлено", startTimer: "СТАРТ", stopTimer: "СТОП", resetTimer: "Сбросить",
     result: "Результат", classResults: "Результаты класса", savedAutomatically: "Сохраняется автоматически", noResult: "Нет результата",
-    markCompleted: "ОТМЕТИТЬ ВЫПОЛНЕННЫМ", completed: "ВЫПОЛНЕНО", minutesShort: "мин", secondsShort: "сек", totalTime: "Общее время"
+    markCompleted: "ОТМЕТИТЬ ВЫПОЛНЕННЫМ", completed: "ВЫПОЛНЕНО", minutesShort: "мин", secondsShort: "сек", totalTime: "Общее время",
+    startsAutomatically: "Запускается автоматически", stopsOnExit: "Остановится при переходе дальше", stationTimer: "Таймер станции"
   },
   et: {
     schoolEvent: "Kooli spordipäev", stationsCount: "7 jaama", routesCount: "4 marsruuti", oneTeam: "1 meeskond",
@@ -38,7 +41,8 @@ const translations = {
     copyFallback: "Kopeerige aadress brauseri aadressiribalt", eventTimer: "Üldtaimer", timerReady: "Stardiks valmis",
     timerRunning: "Aeg jookseb", timerStopped: "Aeg peatatud", startTimer: "START", stopTimer: "STOPP", resetTimer: "Lähtesta",
     result: "Tulemus", classResults: "Klassi tulemused", savedAutomatically: "Salvestatakse automaatselt", noResult: "Tulemus puudub",
-    markCompleted: "MÄRGI TEHTUKS", completed: "TEHTUD", minutesShort: "min", secondsShort: "sek", totalTime: "Koguaeg"
+    markCompleted: "MÄRGI TEHTUKS", completed: "TEHTUD", minutesShort: "min", secondsShort: "sek", totalTime: "Koguaeg",
+    startsAutomatically: "Käivitub automaatselt", stopsOnExit: "Peatub järgmisele liikudes", stationTimer: "Jaama taimer"
   }
 };
 
@@ -83,6 +87,7 @@ function readTimer(classId) {
 
 function saveTimer(classId, timer) {
   localStorage.setItem(timerKey(classId), JSON.stringify(timer));
+  markClassChanged(classId);
 }
 
 function elapsedMilliseconds(timer) {
@@ -105,13 +110,20 @@ function timerPanel(classId) {
       <div class="event-timer__header"><span>${tr("eventTimer")}</span><span class="event-timer__status"><i></i>${status}</span></div>
       <div class="event-timer__body">
         <time data-timer-value data-timer-class="${classId}">${formatTime(elapsedMilliseconds(timer))}</time>
-        ${timer.running
-          ? `<button class="timer-button timer-button--stop" type="button" data-timer-stop data-timer-class="${classId}">${tr("stopTimer")}</button>`
-          : `<button class="timer-button timer-button--start" type="button" data-timer-start data-timer-class="${classId}">${tr("startTimer")}</button>`}
+        <span class="timer-auto-label">${timer.running ? tr("timerRunning") : timer.elapsed > 0 ? tr("timerStopped") : tr("startsAutomatically")}</span>
       </div>
-      ${!timer.running && timer.elapsed > 0 ? `<button class="timer-reset" type="button" data-timer-reset data-timer-class="${classId}">${tr("resetTimer")}</button>` : ""}
     </section>
   `;
+}
+
+function startOverallTimer(classId) {
+  const timer = readTimer(classId);
+  if (!timer.running && timer.elapsed === 0) saveTimer(classId, { running: true, startedAt: Date.now(), elapsed: 0 });
+}
+
+function stopOverallTimer(classId) {
+  const timer = readTimer(classId);
+  if (timer.running) saveTimer(classId, { running: false, startedAt: null, elapsed: elapsedMilliseconds(timer) });
 }
 
 function updateTimerDisplays() {
@@ -119,6 +131,51 @@ function updateTimerDisplays() {
     const timer = readTimer(element.dataset.timerClass);
     element.textContent = formatTime(elapsedMilliseconds(timer));
   });
+  document.querySelectorAll("[data-station-timer-value]").forEach(element => {
+    const timer = readStationTimer(element.dataset.timerClass, element.dataset.stationId);
+    element.textContent = formatStationTime(elapsedMilliseconds(timer));
+  });
+}
+
+function stationTimerKey(classId, stationId) {
+  return `sport-day-station-timer-${classId}-${stationId}`;
+}
+
+function readStationTimer(classId, stationId) {
+  try {
+    const stored = JSON.parse(localStorage.getItem(stationTimerKey(classId, stationId)) || "null");
+    if (stored && Number.isFinite(stored.elapsed) && (!stored.running || Number.isFinite(stored.startedAt))) return stored;
+  } catch {
+    // Invalid data is replaced with a fresh station timer.
+  }
+  return { running: false, startedAt: null, elapsed: 0 };
+}
+
+function saveStationTimer(classId, stationId, timer) {
+  localStorage.setItem(stationTimerKey(classId, stationId), JSON.stringify(timer));
+  markClassChanged(classId);
+}
+
+function formatStationTime(milliseconds) {
+  const totalSeconds = Math.floor(milliseconds / 1000);
+  return `${String(Math.floor(totalSeconds / 60)).padStart(2, "0")}:${String(totalSeconds % 60).padStart(2, "0")}`;
+}
+
+function startStationTimer(classId, stationId) {
+  if (readResult(classId, stationId)) return;
+  const timer = readStationTimer(classId, stationId);
+  if (!timer.running && timer.elapsed === 0) saveStationTimer(classId, stationId, { running: true, startedAt: Date.now(), elapsed: 0 });
+}
+
+function stopStationTimer(classId, stationId) {
+  const station = getStationById(stationId);
+  if (!station || station.result.type !== "duration") return;
+  const timer = readStationTimer(classId, stationId);
+  if (!timer.running) return;
+  const elapsed = elapsedMilliseconds(timer);
+  const totalSeconds = Math.floor(elapsed / 1000);
+  saveStationTimer(classId, stationId, { running: false, startedAt: null, elapsed });
+  saveResult(classId, stationId, { minutes: Math.floor(totalSeconds / 60), seconds: totalSeconds % 60 });
 }
 
 function resultKey(classId, stationId) {
@@ -143,6 +200,19 @@ function readResult(classId, stationId) {
 
 function saveResult(classId, stationId, result) {
   localStorage.setItem(resultKey(classId, stationId), JSON.stringify(result));
+  markClassChanged(classId);
+}
+
+function clearClassSession(classId) {
+  saveProgress(classId, 0);
+  saveComplete(classId, false);
+  saveTimer(classId, { running: false, startedAt: null, elapsed: 0 });
+  const classData = getClassById(classId);
+  for (const stationId of classData.route) {
+    localStorage.removeItem(resultKey(classId, stationId));
+    localStorage.removeItem(stationTimerKey(classId, stationId));
+  }
+  markClassChanged(classId);
 }
 
 function formattedResult(classId, stationId) {
@@ -168,10 +238,12 @@ function resultEditor(classId, stationId, station) {
   } else if (station.result.type === "measurement") {
     control = `<label class="measurement-control"><input type="number" inputmode="decimal" min="0" step="${station.result.step}" value="${result.value}" data-result-measurement data-class-id="${classId}" data-station-id="${stationId}" aria-label="${tr("result")}"><span>${localized(station.result.unit)}</span></label>`;
   } else if (station.result.type === "duration") {
-    control = `<div class="duration-control">
-      <label><input type="number" inputmode="numeric" min="0" value="${result.minutes}" placeholder="00" data-result-duration="minutes" data-class-id="${classId}" data-station-id="${stationId}"><span>${tr("minutesShort")}</span></label>
-      <strong>:</strong>
-      <label><input type="number" inputmode="numeric" min="0" max="59" value="${result.seconds}" placeholder="00" data-result-duration="seconds" data-class-id="${classId}" data-station-id="${stationId}"><span>${tr("secondsShort")}</span></label>
+    const stationTimer = readStationTimer(classId, stationId);
+    const savedMilliseconds = ((Number(result.minutes) || 0) * 60 + (Number(result.seconds) || 0)) * 1000;
+    control = `<div class="automatic-station-timer">
+      <span>${tr("stationTimer")}</span>
+      <time data-station-timer-value data-timer-class="${classId}" data-station-id="${stationId}">${formatStationTime(stationTimer.running ? elapsedMilliseconds(stationTimer) : savedMilliseconds)}</time>
+      <small>${stationTimer.running ? tr("stopsOnExit") : readResult(classId, stationId) ? `✓ ${tr("completed")}` : tr("startsAutomatically")}</small>
     </div>`;
   } else {
     control = `<button class="status-result ${result.value ? "is-complete" : ""}" type="button" data-result-status data-class-id="${classId}" data-station-id="${stationId}">${result.value ? `✓ ${tr("completed")}` : tr("markCompleted")}</button>`;
@@ -203,7 +275,7 @@ function classResults(classId, classData) {
 
   return `<section class="results-summary" aria-labelledby="results-title">
     <div class="section-title-row"><div><p class="step-label">SPORT DAY</p><h2 id="results-title">${tr("classResults")}</h2></div></div>
-    <div class="total-time"><span>${tr("totalTime")}</span><strong>${formatTime(elapsedMilliseconds(timer))}</strong></div>
+    <div class="total-time"><span>${tr("totalTime")}</span><strong data-timer-value data-timer-class="${classId}">${formatTime(elapsedMilliseconds(timer))}</strong></div>
     <div class="results-list">${rows}</div>
   </section>`;
 }
@@ -217,6 +289,7 @@ export function readProgress(classId) {
 
 function saveProgress(classId, routeIndex) {
   localStorage.setItem(progressKey(classId), String(routeIndex));
+  markClassChanged(classId);
 }
 
 function isComplete(classId) {
@@ -225,9 +298,22 @@ function isComplete(classId) {
 
 function saveComplete(classId, value) {
   localStorage.setItem(completionKey(classId), String(value));
+  markClassChanged(classId);
 }
 
-function navigate(path, { replace = false } = {}) {
+async function ensureClassHydrated(classId) {
+  if (!classId || hydratedClasses.has(classId)) return;
+  hydratedClasses.add(classId);
+  try {
+    await hydrateClass(classId);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function navigate(path, { replace = false } = {}) {
+  const destination = parseRoute(path);
+  await ensureClassHydrated(destination.classId);
   if (replace) history.replaceState({}, "", path);
   else history.pushState({}, "", path);
   render();
@@ -403,6 +489,8 @@ function renderStation(classId, stationId) {
   const previousId = classData.route[routeIndex - 1];
   const nextId = classData.route[routeIndex + 1];
   const isLast = routeIndex === classData.route.length - 1;
+  if (routeIndex === 0) startOverallTimer(classId);
+  if (station.result.type === "duration") startStationTimer(classId, stationId);
   document.title = `${tr("station")} ${stationId} — ${classData.name}`;
   document.documentElement.lang = language;
 
@@ -478,31 +566,6 @@ document.addEventListener("click", async (event) => {
     return;
   }
 
-  const timerStart = event.target.closest("[data-timer-start]");
-  if (timerStart) {
-    const classId = timerStart.dataset.timerClass;
-    const timer = readTimer(classId);
-    saveTimer(classId, { running: true, startedAt: Date.now(), elapsed: timer.elapsed });
-    render();
-    return;
-  }
-
-  const timerStop = event.target.closest("[data-timer-stop]");
-  if (timerStop) {
-    const classId = timerStop.dataset.timerClass;
-    const timer = readTimer(classId);
-    saveTimer(classId, { running: false, startedAt: null, elapsed: elapsedMilliseconds(timer) });
-    render();
-    return;
-  }
-
-  const timerReset = event.target.closest("[data-timer-reset]");
-  if (timerReset) {
-    saveTimer(timerReset.dataset.timerClass, { running: false, startedAt: null, elapsed: 0 });
-    render();
-    return;
-  }
-
   const resultDelta = event.target.closest("[data-result-delta]");
   if (resultDelta) {
     const classId = resultDelta.dataset.classId;
@@ -532,7 +595,8 @@ document.addEventListener("click", async (event) => {
 
   const next = event.target.closest("[data-next-station]");
   if (next) {
-    const { classId } = parseRoute();
+    const { classId, stationId } = parseRoute();
+    stopStationTimer(classId, stationId);
     saveProgress(classId, Number(next.dataset.nextIndex));
     saveComplete(classId, false);
   }
@@ -541,6 +605,7 @@ document.addEventListener("click", async (event) => {
   if (previous) {
     const route = parseRoute();
     const classData = getClassById(route.classId);
+    stopStationTimer(route.classId, route.stationId);
     saveProgress(route.classId, Math.max(0, classData.route.indexOf(route.stationId) - 1));
     saveComplete(route.classId, false);
   }
@@ -548,8 +613,7 @@ document.addEventListener("click", async (event) => {
   const reset = event.target.closest("[data-reset]");
   if (reset) {
     const { classId } = parseRoute();
-    saveProgress(classId, 0);
-    saveComplete(classId, false);
+    clearClassSession(classId);
     renderClass(classId);
     showToast(tr("resetToast"));
     return;
@@ -557,7 +621,9 @@ document.addEventListener("click", async (event) => {
 
   const finish = event.target.closest("[data-finish]");
   if (finish) {
-    const { classId } = parseRoute();
+    const { classId, stationId } = parseRoute();
+    stopStationTimer(classId, stationId);
+    stopOverallTimer(classId);
     saveComplete(classId, true);
     showToast(tr("completeToast"));
     setTimeout(() => navigate(`/class/${classId}`), 500);
@@ -577,6 +643,8 @@ document.addEventListener("click", async (event) => {
 
   const link = event.target.closest("a[data-link]");
   if (link && link.origin === window.location.origin && !event.metaKey && !event.ctrlKey) {
+    const route = parseRoute();
+    if (route.page === "station" && link.pathname !== window.location.pathname) stopStationTimer(route.classId, route.stationId);
     event.preventDefault();
     navigate(link.pathname);
   }
@@ -587,22 +655,31 @@ document.addEventListener("input", event => {
   if (measurement) {
     const value = measurement.value === "" ? "" : Math.max(0, Number(measurement.value));
     saveResult(measurement.dataset.classId, Number(measurement.dataset.stationId), { value });
-    return;
-  }
-
-  const duration = event.target.closest("[data-result-duration]");
-  if (duration) {
-    const classId = duration.dataset.classId;
-    const stationId = Number(duration.dataset.stationId);
-    const result = readResult(classId, stationId) || { minutes: "", seconds: "" };
-    const maximum = duration.dataset.resultDuration === "seconds" ? 59 : Number.MAX_SAFE_INTEGER;
-    result[duration.dataset.resultDuration] = duration.value === "" ? "" : String(Math.min(maximum, Math.max(0, Number(duration.value))));
-    saveResult(classId, stationId, result);
   }
 });
 
-window.addEventListener("popstate", render);
-render();
+window.addEventListener("popstate", async () => {
+  const route = parseRoute();
+  await ensureClassHydrated(route.classId);
+  render();
+});
+
+async function initialize() {
+  const route = parseRoute();
+  await ensureClassHydrated(route.classId);
+  render();
+}
+
+initialize();
 setInterval(updateTimerDisplays, 250);
+setInterval(async () => {
+  const route = parseRoute();
+  if (!route.classId || !hydratedClasses.has(route.classId)) return;
+  try {
+    if (await refreshClassFromCloud(route.classId)) render();
+  } catch (error) {
+    console.error(error);
+  }
+}, 5000);
 
 export { formatTime, parseRoute };

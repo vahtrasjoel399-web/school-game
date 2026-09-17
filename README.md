@@ -14,6 +14,29 @@ Mobile-first маршрут для школьного Sport Day. Сайт не �
 
 Все результаты видны на странице маршрута класса.
 
+Общий таймер запускается автоматически при открытии первой станции маршрута и останавливается кнопкой завершения на последней станции. На заданиях 5 и 6 отдельный таймер запускается при открытии станции и сам сохраняет результат при переходе дальше.
+
+## Supabase
+
+1. Создайте проект Supabase и выполните содержимое `supbase/schema.sql` в SQL Editor.
+2. Для локальной сборки заполните `supbase/key`:
+
+```env
+SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+SUPABASE_ANON_KEY=YOUR_PUBLIC_ANON_KEY
+```
+
+Используйте только публичный `anon` / publishable key. Никогда не добавляйте `service_role` key в сайт.
+
+3. В Vercel → Project Settings → Environment Variables добавьте те же переменные:
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+
+4. Выполните Redeploy without cache.
+
+При настроенном Supabase прогресс, общий таймер, таймеры станций и результаты синхронизируются между телефонами каждые 5 секунд. Файл `supbase/key` исключён из Git.
+
 ## Запуск
 
 ```bash
