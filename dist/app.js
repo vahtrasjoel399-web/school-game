@@ -15,8 +15,8 @@ const translations = {
     thisIsFinish: "Это финиш! 🏆", openStation: "ОТКРЫТЬ СТАНЦИЮ {id}", restartRoute: "НАЧАТЬ МАРШРУТ ЗАНОВО",
     route: "Маршрут", allStations: "Все станции", restart: "Начать заново", passed: "Пройдено", station: "Станция",
     qrLink: "Ссылка для QR-кода", qrHint: "Открывает маршрут {className} напрямую.", copy: "Копировать", whatToDo: "Что нужно делать",
-    time: "Время", equipment: "Инвентарь", video: "Видео", howTo: "Как выполнять задание", videoInstruction: "Видео с инструкцией",
-    comingSoon: "Скоро появится", back: "Назад", next: "НА СЛЕДУЮЩУЮ", complete: "ЗАВЕРШИТЬ", viewRoute: "Посмотреть весь маршрут",
+    time: "Время", equipment: "Инвентарь", photo: "Фото", taskPhoto: "Фото задания", photoSoon: "Фотография скоро появится",
+    tapToEnlarge: "Нажмите, чтобы увеличить", closePhoto: "Закрыть фотографию", back: "Назад", next: "НА СЛЕДУЮЩУЮ", complete: "ЗАВЕРШИТЬ", viewRoute: "Посмотреть весь маршрут",
     wrongPlace: "Не та площадка", missingPage: "Такой страницы или маршрута нет.", chooseClassButton: "К выбору класса", error: "Ошибка 404",
     resetToast: "Маршрут начат заново", completeToast: "Маршрут пройден! Отличная работа 🏆", copiedToast: "Ссылка скопирована",
     copyFallback: "Скопируйте адрес из строки браузера", eventTimer: "Общий таймер", timerReady: "Готов к старту",
@@ -36,8 +36,8 @@ const translations = {
     thisIsFinish: "See on finiš! 🏆", openStation: "AVA JAAM {id}", restartRoute: "ALUSTA MARSRUUTI UUESTI",
     route: "Marsruut", allStations: "Kõik jaamad", restart: "Alusta uuesti", passed: "Läbitud", station: "Jaam",
     qrLink: "QR-koodi link", qrHint: "Avab klassi {className} marsruudi otse.", copy: "Kopeeri", whatToDo: "Mida tuleb teha",
-    time: "Aeg", equipment: "Vahendid", video: "Video", howTo: "Kuidas ülesannet täita", videoInstruction: "Videojuhend",
-    comingSoon: "Tulekul", back: "Tagasi", next: "JÄRGMISSE JAAMA", complete: "LÕPETA", viewRoute: "Vaata kogu marsruuti",
+    time: "Aeg", equipment: "Vahendid", photo: "Foto", taskPhoto: "Ülesande foto", photoSoon: "Foto lisatakse peagi",
+    tapToEnlarge: "Suurendamiseks vajutage", closePhoto: "Sulge foto", back: "Tagasi", next: "JÄRGMISSE JAAMA", complete: "LÕPETA", viewRoute: "Vaata kogu marsruuti",
     wrongPlace: "Vale väljak", missingPage: "Sellist lehte või marsruuti pole.", chooseClassButton: "Klassi valikusse", error: "Viga 404",
     resetToast: "Marsruut algas uuesti", completeToast: "Marsruut läbitud! Suurepärane töö 🏆", copiedToast: "Link kopeeritud",
     copyFallback: "Kopeerige aadress brauseri aadressiribalt", eventTimer: "Üldtaimer", timerReady: "Stardiks valmis",
@@ -473,14 +473,18 @@ function renderClass(classId) {
   });
 }
 
-function videoBlock(station) {
-  if (station.video) {
-    return `<div class="video-frame"><iframe src="${station.video}" title="${tr("videoInstruction")}" allowfullscreen loading="lazy"></iframe></div>`;
+function photoBlock(station, stationId) {
+  if (station.photo) {
+    const alt = `${tr("station")} ${stationId}: ${localized(station.name)}`;
+    return `<button class="photo-frame" type="button" data-photo-open data-photo-src="${station.photo}" data-photo-alt="${alt}">
+      <img src="${station.photo}" alt="${alt}" loading="lazy">
+      <span>⛶ ${tr("tapToEnlarge")}</span>
+    </button>`;
   }
   return `
-    <div class="video-placeholder">
-      <span class="play-icon">▶</span>
-      <div><strong>${tr("videoInstruction")}</strong><p>${tr("comingSoon")}</p></div>
+    <div class="photo-placeholder">
+      <span class="photo-placeholder__icon">▧</span>
+      <div><strong>${tr("taskPhoto")}</strong><p>${tr("photoSoon")}</p></div>
     </div>
   `;
 }
@@ -520,9 +524,9 @@ function renderStation(classId, stationId) {
         <div class="fact"><span class="fact__icon">🎒</span><div><span>${tr("equipment")}</span><strong>${localized(station.equipment)}</strong></div></div>
       </div>
       ${resultEditor(classId, stationId, station)}
-      <div class="video-section">
-        <div class="section-title-row"><div><p class="step-label">${tr("video").toUpperCase()}</p><h2>${tr("howTo")}</h2></div></div>
-        ${videoBlock(station)}
+      <div class="photo-section">
+        <div class="section-title-row"><div><p class="step-label">${tr("photo").toUpperCase()}</p><h2>${tr("taskPhoto")}</h2></div></div>
+        ${photoBlock(station, stationId)}
       </div>
     </section>
     <div class="station-actions">
@@ -562,6 +566,24 @@ function playResultAnimation(stationId, label = "✓") {
   setTimeout(() => celebration.remove(), 1000);
 }
 
+function closePhotoModal() {
+  document.querySelector(".photo-modal")?.remove();
+  document.body.style.overflow = "";
+}
+
+function openPhotoModal(source, alt) {
+  closePhotoModal();
+  const modal = document.createElement("div");
+  modal.className = "photo-modal";
+  modal.setAttribute("role", "dialog");
+  modal.setAttribute("aria-modal", "true");
+  modal.setAttribute("aria-label", alt);
+  modal.innerHTML = `<button type="button" data-photo-close aria-label="${tr("closePhoto")}">×</button><img src="${source}" alt="${alt}">`;
+  document.body.append(modal);
+  document.body.style.overflow = "hidden";
+  requestAnimationFrame(() => modal.classList.add("is-open"));
+}
+
 function render() {
   const route = parseRoute();
   if (route.page === "home") renderHome();
@@ -571,6 +593,18 @@ function render() {
 }
 
 document.addEventListener("click", async (event) => {
+  const photoClose = event.target.closest("[data-photo-close]");
+  if (photoClose || event.target.classList.contains("photo-modal")) {
+    closePhotoModal();
+    return;
+  }
+
+  const photoOpen = event.target.closest("[data-photo-open]");
+  if (photoOpen) {
+    openPhotoModal(photoOpen.dataset.photoSrc, photoOpen.dataset.photoAlt);
+    return;
+  }
+
   const languageButton = event.target.closest("[data-language]");
   if (languageButton) {
     language = languageButton.dataset.language;
@@ -684,6 +718,10 @@ document.addEventListener("click", async (event) => {
     event.preventDefault();
     navigate(link.pathname);
   }
+});
+
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape") closePhotoModal();
 });
 
 document.addEventListener("input", event => {

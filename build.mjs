@@ -18,6 +18,9 @@ for (const file of staticFiles) {
   cpSync(join(process.cwd(), file), join(outputDirectory, file));
 }
 
+const assetsDirectory = join(process.cwd(), "assets");
+if (existsSync(assetsDirectory)) cpSync(assetsDirectory, join(outputDirectory, "assets"), { recursive: true });
+
 function localSupabaseConfig() {
   const keyPath = join(process.cwd(), "supbase", "key");
   if (!existsSync(keyPath)) return {};

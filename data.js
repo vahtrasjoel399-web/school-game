@@ -16,7 +16,7 @@ export const stations = {
     },
     time: { ru: "До выполнения", et: "Kuni ülesanne on tehtud" },
     equipment: { ru: "Цветные мячи и 4 цветных кольца", et: "Värvilised pallid ja 4 värvilist rõngast" },
-    result: { type: "status" }, video: ""
+    result: { type: "status" }, photo: ""
   },
   2: {
     name: { ru: "Баскетбольный бросок", et: "Korvpalli vise" }, icon: "🏀",
@@ -27,7 +27,7 @@ export const stations = {
     },
     time: { ru: "По одному броску", et: "Üks vise õpilase kohta" },
     equipment: { ru: "Мячи, большое кольцо и 4–5 маленьких колец", et: "Pallid, suur rõngas ja 4–5 väikest rõngast" },
-    result: { type: "counter", unit: { ru: "очков", et: "punkti" }, steps: [1, 3] }, video: ""
+    result: { type: "counter", unit: { ru: "очков", et: "punkti" }, steps: [1, 3] }, photo: ""
   },
   3: {
     name: { ru: "Удар по футбольным воротам", et: "Jalgpalli väravalöök" }, icon: "⚽",
@@ -38,7 +38,7 @@ export const stations = {
     },
     time: { ru: "По одной попытке", et: "Üks katse õpilase kohta" },
     equipment: { ru: "Футбольный мяч и ворота", et: "Jalgpall ja värav" },
-    result: { type: "counter", unit: { ru: "голов", et: "väravat" }, steps: [1] }, video: ""
+    result: { type: "counter", unit: { ru: "голов", et: "väravat" }, steps: [1] }, photo: ""
   },
   4: {
     name: { ru: "Прыжки всего класса", et: "Kui kaugele klass hüppab?" }, icon: "🦘",
@@ -49,7 +49,7 @@ export const stations = {
     },
     time: { ru: "До последнего ученика", et: "Kuni viimane õpilane on hüpanud" },
     equipment: { ru: "Рулетка длиной 50 метров", et: "50-meetrine mõõdulint" },
-    result: { type: "measurement", unit: { ru: "метров", et: "meetrit" }, step: 0.1 }, video: ""
+    result: { type: "measurement", unit: { ru: "метров", et: "meetrit" }, step: 0.1 }, photo: ""
   },
   5: {
     name: { ru: "Передача мяча", et: "Palli söötmine" }, icon: "🏐",
@@ -59,7 +59,7 @@ export const stations = {
       et: ["Õpilased seisavad 1–2 meetri kaugusel.", "Pall peab liikuma läbi kõigi õpilaste.", "Viimane õpilane viskab palli korvi."]
     },
     time: { ru: "На скорость", et: "Kiiruse peale" }, equipment: { ru: "Мяч и корзина", et: "Pall ja korv" },
-    result: { type: "duration" }, video: ""
+    result: { type: "duration" }, photo: ""
   },
   6: {
     name: { ru: "Полоса препятствий", et: "Takistusrada" }, icon: "🏃",
@@ -69,7 +69,7 @@ export const stations = {
       et: ["Joosta siksakis ümber koonuste.", "Hüpata jänesehüpetega üle takistuste.", "Läbida koordinatsiooniredel.", "Jõuda koonuseni, panna pall maha ja tulla tagasi."]
     },
     time: { ru: "На скорость", et: "Kiiruse peale" }, equipment: { ru: "Конусы, препятствия, лестница и мяч", et: "Koonused, takistused, redel ja pall" },
-    result: { type: "duration" }, video: ""
+    result: { type: "duration" }, photo: ""
   },
   7: {
     name: { ru: "Переправа через лужи", et: "Jump the Puddle" }, icon: "💦",
@@ -79,7 +79,7 @@ export const stations = {
       et: ["Klassil on 4–5 suurt rõngast.", "Liigutage rõngaid meeskonnaga edasi.", "Rõngast välja astuda ei tohi!"]
     },
     time: { ru: "До выполнения", et: "Kuni ülesanne on tehtud" }, equipment: { ru: "4–5 больших колец и мячи", et: "4–5 suurt rõngast ja pallid" },
-    result: { type: "status" }, video: ""
+    result: { type: "status" }, photo: "/assets/station-7.png"
   }
 };
 

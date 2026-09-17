@@ -45,3 +45,8 @@ test("stations use the scoring type required by their task", () => {
   assert.equal(stations[5].result.type, "duration");
   assert.equal(stations[6].result.type, "duration");
 });
+
+test("station media uses photos instead of videos", () => {
+  for (const station of Object.values(stations)) assert.equal("video" in station, false);
+  assert.equal(stations[7].photo, "/assets/station-7.png");
+});
